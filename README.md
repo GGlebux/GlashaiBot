@@ -27,14 +27,17 @@
 
 ## Быстрый старт
 
+> 📘 **Полная настройка с нуля** (как назвать бота + где взять каждый ключ для
+> `.env`) — в **[SETUP.md](SETUP.md)**. Начни оттуда.
+
 ```bash
 git clone <repo>
 cd glashatai
-cp .env.example .env       # заполни токены
+cp .env.example .env       # заполни токены (см. SETUP.md)
 docker compose up -d
 ```
 
-Что нужно получить заранее:
+Что нужно получить заранее (подробно — в [SETUP.md](SETUP.md)):
 
 | Что | Где |
 |---|---|
@@ -42,6 +45,9 @@ docker compose up -d
 | 🔑 Ключ SaluteSpeech | [developers.sber.ru](https://developers.sber.ru) → SaluteSpeech |
 | 🔑 Ключ GigaChat | [developers.sber.ru](https://developers.sber.ru) → GigaChat API |
 | 🆔 Свой Telegram ID | [@userinfobot](https://t.me/userinfobot) |
+
+**Имя бота:** display name `Глашатай 📯`, username вроде `@GlashataiBot`
+(должен заканчиваться на `bot`). Детали и варианты — в [SETUP.md](SETUP.md).
 
 ## Разработка
 

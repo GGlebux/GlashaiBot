@@ -43,6 +43,9 @@ docker/certs/*.crt
 docker/certs/*.cer
 !docker/certs/.gitkeep
 
+# --- Локальные заметки (не коммитим) ---
+BRANDING_PROMPTS.md
+
 # --- OS ---
 .DS_Store
 Thumbs.db

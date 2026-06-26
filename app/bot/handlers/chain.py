@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.bot import texts
+from app.bot import reactions, texts
+from app.bot.reactions import Stage
 from app.queue import get_arq_pool
 from app.store import is_chain_active, pop_chain, start_chain
 
@@ -24,11 +25,13 @@ async def cmd_begin(message: Message) -> None:
 
 
 @router.message(Command("end"))
-async def cmd_end(message: Message) -> None:
+async def cmd_end(message: Message, bot: Bot) -> None:
     uid = message.from_user.id
     if not await is_chain_active(uid):
         await message.answer(texts.CHAIN_NOT_ACTIVE)
         return
+    # Показываем прогресс реакцией прямо на команде /end.
+    await reactions.set_stage(bot, message.chat.id, message.message_id, Stage.accepted)
     await message.answer(texts.CHAIN_FINALIZING)
     pool = await get_arq_pool()
     await pool.enqueue_job("process_chain_finalize", message.chat.id, message.message_id, uid)

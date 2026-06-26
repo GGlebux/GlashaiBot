@@ -119,9 +119,12 @@ async def process_chain_finalize(
     bot: Bot = ctx["bot"]
     items, total_duration = await pop_chain(user_id)
     if not items:
+        await set_stage(bot, chat_id, message_id, Stage.error)
         await bot.send_message(chat_id, texts.CHAIN_EMPTY)
         return
 
+    # Показываем, что собираем общее краткое содержание.
+    await set_stage(bot, chat_id, message_id, Stage.summarizing)
     started = time.monotonic()
     status = EventStatus.ok
     error_code: str | None = None
@@ -130,10 +133,12 @@ async def process_chain_finalize(
         summary = await summarize(combined, multi=True)
         body = texts.format_chain_result(summary, len(items))
         await send_html_chunks(bot, chat_id, body, reply_to_message_id=message_id)
+        await set_stage(bot, chat_id, message_id, Stage.done)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ошибка финализации цепочки для user=%s", user_id)
         status = EventStatus.error
         error_code = type(exc).__name__
+        await set_stage(bot, chat_id, message_id, Stage.error)
         await bot.send_message(chat_id, texts.ERROR_GENERIC)
     finally:
         await _save_event(

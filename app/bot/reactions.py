@@ -20,6 +20,7 @@ class Stage(str, enum.Enum):
     accepted = "👀"      # принял в работу
     transcribing = "✍️"  # распознаю
     captured = "👍"      # фрагмент цепочки подхвачен
+    summarizing = "🤔"   # собираю краткое содержание цепочки
     done = "🎉"          # готово
     error = "⚡"          # ошибка
 
