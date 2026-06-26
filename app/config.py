@@ -37,14 +37,17 @@ class Settings(BaseSettings):
     gigachat_client_secret: str = ""
     gigachat_scope: str = "GIGACHAT_API_PERS"
     gigachat_model: str = "GigaChat"
+    # Запасная модель: если у основной кончился лимит/ошибка — повторим на ней.
+    # Пусто — без подмены. По умолчанию падаем на бюджетную GigaChat (Lite).
+    gigachat_fallback_model: str = "GigaChat"
 
     # --- Выбор движка распознавания речи (STT) ---
     # whisper       — локальный faster-whisper (бесплатно, без квот);
     # salutespeech  — облако Сбера (нужен подключённый пакет).
     stt_backend: str = "whisper"
     # Модель Whisper: tiny | base | small | medium | large-v3.
-    # На слабом VPS (1-2 ГБ) реально tiny/base.
-    whisper_model: str = "base"
+    # 1 ГБ → tiny/base; 2 ГБ → small (баланс качества и памяти).
+    whisper_model: str = "small"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
     whisper_language: str = "ru"

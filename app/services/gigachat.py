@@ -34,8 +34,25 @@ async def _headers() -> dict[str, str]:
     }
 
 
+async def _complete(messages: list[dict], model: str) -> str:
+    body = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": 1024,
+    }
+    async with make_client(timeout=90) as client:
+        resp = await client.post(CHAT_URL, headers=await _headers(), json=body)
+    if resp.status_code != 200:
+        raise GigaChatError(f"chat/completions [{model}] {resp.status_code}: {resp.text[:300]}")
+    return resp.json()["choices"][0]["message"]["content"].strip()
+
+
 async def summarize(transcript: str, *, multi: bool = False) -> str:
-    """Краткое содержание одной расшифровки или склейки нескольких (chain)."""
+    """Краткое содержание одной расшифровки или склейки нескольких (chain).
+
+    Если у основной модели ошибка/исчерпан лимит — повторяем на запасной.
+    """
     if not transcript.strip():
         return ""
 
@@ -47,19 +64,20 @@ async def summarize(transcript: str, *, multi: bool = False) -> str:
     else:
         instruction = "Сделай краткое содержание этой расшифровки:\n\n"
 
-    body = {
-        "model": settings.gigachat_model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": instruction + transcript},
-        ],
-        "temperature": 0.3,
-        "max_tokens": 1024,
-    }
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": instruction + transcript},
+    ]
 
-    async with make_client(timeout=90) as client:
-        resp = await client.post(CHAT_URL, headers=await _headers(), json=body)
-    if resp.status_code != 200:
-        raise GigaChatError(f"chat/completions {resp.status_code}: {resp.text[:300]}")
-    data = resp.json()
-    return data["choices"][0]["message"]["content"].strip()
+    model = settings.gigachat_model
+    try:
+        return await _complete(messages, model)
+    except GigaChatError as exc:
+        fallback = settings.gigachat_fallback_model
+        if fallback and fallback != model:
+            logger.warning(
+                "GigaChat %s не ответил (%s) — пробую запасную модель %s",
+                model, exc, fallback,
+            )
+            return await _complete(messages, fallback)
+        raise
