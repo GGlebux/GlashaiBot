@@ -1,0 +1,72 @@
+# Прод-стек «Глашатай». Берёт готовый образ из Docker Hub.
+# Поднять всё:  docker compose up -d
+#
+# Образ задаётся переменной DOCKER_IMAGE в .env, напр.:
+#   DOCKER_IMAGE=yourdockerhubuser/glashatai:latest
+
+x-app: &app
+  image: ${DOCKER_IMAGE:-glashatai:latest}
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  bot:
+    <<: *app
+    command: python -m app.bot.main
+
+  worker:
+    <<: *app
+    command: arq app.worker.main.WorkerSettings
+
+  admin:
+    <<: *app
+    command: uvicorn app.admin.main:app --host 0.0.0.0 --port ${ADMIN_PORT:-8080}
+    ports:
+      - "${ADMIN_PORT:-8080}:${ADMIN_PORT:-8080}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${ADMIN_PORT:-8080}/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  # Авто-деплой: следит за Docker Hub и обновляет контейнеры при новом образе.
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup --interval 300
+    # Для приватного репозитория Docker Hub раскомментируй и заполни:
+    # environment:
+    #   REPO_USER: ${DOCKERHUB_USERNAME}
+    #   REPO_PASS: ${DOCKERHUB_TOKEN}
+
+volumes:
+  postgres_data:
+  redis_data:

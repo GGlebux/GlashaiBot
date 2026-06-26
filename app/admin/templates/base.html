@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Глашатай 📯 — админка</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #181b22;
+      --panel-2: #1f232c;
+      --text: #e7e9ee;
+      --muted: #9aa3b2;
+      --accent: #f5a623;
+      --ok: #36c275;
+      --err: #e5534b;
+      --border: #2a2f3a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
+    }
+    header .brand { font-size: 20px; font-weight: 700; }
+    header .brand span { color: var(--accent); }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px;
+    }
+    .card .value { font-size: 28px; font-weight: 700; }
+    .card .label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    h2 { margin: 28px 0 14px; font-size: 17px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+    .chart { display: flex; align-items: flex-end; gap: 8px; height: 160px; }
+    .bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar .fill { width: 100%; background: linear-gradient(180deg, var(--accent), #c97e10); border-radius: 6px 6px 0 0; min-height: 3px; }
+    .bar .tick { font-size: 11px; color: var(--muted); }
+    .bar .num { font-size: 11px; color: var(--text); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 500; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; }
+    .badge.ok { background: rgba(54,194,117,.15); color: var(--ok); }
+    .badge.err { background: rgba(229,83,75,.15); color: var(--err); }
+    .badge.muted { background: var(--panel-2); color: var(--muted); }
+    .health { display: flex; gap: 12px; flex-wrap: wrap; }
+    button, input[type=number] {
+      font: inherit; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--panel-2); color: var(--text); padding: 6px 10px;
+    }
+    button { cursor: pointer; }
+    button.danger { color: var(--err); border-color: rgba(229,83,75,.4); }
+    button.accent { color: var(--accent); border-color: rgba(245,166,35,.4); }
+    form.inline { display: inline; }
+    .actions { display: flex; gap: 6px; align-items: center; }
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 70vh; }
+    .login-card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 40px; text-align: center; max-width: 380px; }
+    .login-card h1 { font-size: 40px; margin: 0 0 8px; }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">📯 Глаша<span>тай</span></div>
+    {% block nav %}{% endblock %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

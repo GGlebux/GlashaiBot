@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block nav %}
+  <a href="/logout">Выйти</a>
+{% endblock %}
+
+{% block content %}
+  <div class="cards">
+    <div class="card"><div class="value">{{ overview.total_users }}</div><div class="label">Пользователей</div></div>
+    <div class="card"><div class="value">{{ overview.total_events }}</div><div class="label">Обработок всего</div></div>
+    <div class="card"><div class="value">{{ overview.ok_events }}</div><div class="label">Успешно</div></div>
+    <div class="card"><div class="value">{{ overview.error_events }}</div><div class="label">С ошибкой</div></div>
+    <div class="card"><div class="value">{{ overview.total_audio_minutes }}</div><div class="label">Минут аудио</div></div>
+    <div class="card"><div class="value">{{ overview.blocked_users }}</div><div class="label">Заблокировано</div></div>
+  </div>
+
+  <h2>Состояние бота</h2>
+  <div class="panel health">
+    <span class="badge {{ 'ok' if health.redis else 'err' }}">Redis: {{ 'OK' if health.redis else 'нет' }}</span>
+    <span class="badge {{ 'ok' if health.db else 'err' }}">PostgreSQL: {{ 'OK' if health.db else 'нет' }}</span>
+    <span class="badge muted">В очереди задач: {{ health.queue if health.queue is not none else '—' }}</span>
+    <span class="badge muted">Лимит по умолчанию: {{ default_limit }}/сутки</span>
+  </div>
+
+  <h2>Обработки за 14 дней</h2>
+  <div class="panel">
+    {% if per_day %}
+      <div class="chart">
+        {% for day, count in per_day %}
+          <div class="bar">
+            <div class="num">{{ count }}</div>
+            <div class="fill" style="height: {{ (count / max_day * 140) | round(0, 'floor') }}px"></div>
+            <div class="tick">{{ day }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">Пока нет данных.</p>
+    {% endif %}
+  </div>
+
+  <h2>Пользователи</h2>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Пользователь</th><th>Сегодня</th><th>Лимит</th>
+          <th>Был</th><th>Статус</th><th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>
+            {% if u.username %}@{{ u.username }}{% else %}{{ u.first_name or '—' }}{% endif %}
+          </td>
+          <td>{{ u.used_today }}</td>
+          <td>
+            {{ u.limit }}{% if u.custom %} <span class="badge accent" style="border:0">свой</span>{% endif %}
+          </td>
+          <td class="muted">{{ u.last_seen }}</td>
+          <td>
+            {% if u.is_blocked %}
+              <span class="badge err">заблокирован</span>
+            {% else %}
+              <span class="badge ok">активен</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              {% if u.is_blocked %}
+                <form class="inline" method="post" action="/users/{{ u.id }}/unblock">
+                  <button class="accent">Разблокировать</button>
+                </form>
+              {% else %}
+                <form class="inline" method="post" action="/users/{{ u.id }}/block">
+                  <button class="danger">Блок</button>
+                </form>
+              {% endif %}
+              <form class="inline" method="post" action="/users/{{ u.id }}/limit">
+                <input type="number" name="limit" min="0" style="width:70px"
+                       placeholder="лимит" value="{{ u.limit if u.custom else '' }}">
+                <button>OK</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

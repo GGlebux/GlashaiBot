@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-wrap">
+  <div class="login-card">
+    <h1>📯</h1>
+    <h2 style="margin-top:0">Вход в админку «Глашатай»</h2>
+    <p class="muted">Авторизуйся через Telegram. Доступ только у администраторов.</p>
+
+    {% if error %}
+      <p><span class="badge err">Доступ запрещён или ссылка устарела</span></p>
+    {% endif %}
+
+    <div style="margin-top: 20px; display:flex; justify-content:center;">
+      {% if bot_username %}
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-login="{{ bot_username }}"
+          data-size="large"
+          data-userpic="false"
+          data-auth-url="{{ auth_url }}"
+          data-request-access="write"></script>
+      {% else %}
+        <p class="muted">Username бота не определён. Проверь BOT_TOKEN и перезапусти сервис.</p>
+      {% endif %}
+    </div>
+
+    <p class="muted" style="margin-top:24px; font-size:12px;">
+      Для работы виджета домен админки должен быть указан в @BotFather (/setdomain).
+    </p>
+  </div>
+</div>
+{% endblock %}

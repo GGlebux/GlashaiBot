@@ -1,0 +1,60 @@
+# Dev-стек «Глашатай». Собирает образ локально, монтирует исходники,
+# перезапускает процессы при изменении кода (hot-reload через watchfiles).
+#
+# Запуск:  docker compose -f docker-compose-dev.yml up --build
+
+x-app: &app
+  build: .
+  restart: unless-stopped
+  env_file: .env
+  volumes:
+    - ./app:/app/app
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  bot:
+    <<: *app
+    command: watchfiles "python -m app.bot.main" app
+
+  worker:
+    <<: *app
+    command: watchfiles "arq app.worker.main.WorkerSettings" app
+
+  admin:
+    <<: *app
+    command: uvicorn app.admin.main:app --host 0.0.0.0 --port ${ADMIN_PORT:-8080} --reload --reload-dir app
+    ports:
+      - "${ADMIN_PORT:-8080}:${ADMIN_PORT:-8080}"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"          # доступ к БД с хоста для разработки
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
