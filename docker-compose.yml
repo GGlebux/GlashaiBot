@@ -4,6 +4,10 @@
 # Образ задаётся переменной DOCKER_IMAGE в .env, напр.:
 #   DOCKER_IMAGE=yourdockerhubuser/glashatai:latest
 
+# Фиксированное имя проекта (папка может быть на кириллице — тогда compose
+# не может вывести имя сам).
+name: glashatai
+
 x-app: &app
   image: ${DOCKER_IMAGE:-glashatai:latest}
   restart: unless-stopped
@@ -21,7 +25,7 @@ services:
 
   worker:
     <<: *app
-    command: arq app.worker.main.WorkerSettings
+    command: python -m app.worker.run
 
   admin:
     <<: *app

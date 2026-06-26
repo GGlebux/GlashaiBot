@@ -2,6 +2,13 @@
 # перезапускает процессы при изменении кода (hot-reload через watchfiles).
 #
 # Запуск:  docker compose -f docker-compose-dev.yml up --build
+#
+# ВАЖНО: локальная сборка через compose использует bake, который не переваривает
+# кириллицу в пути. Для dev-сборки держи проект в ASCII-пути (например,
+# C:\dev\glashatai) — склонируй туда из GitHub. Прод (docker-compose.yml) тянет
+# готовый образ из Docker Hub и в сборке не нуждается.
+
+name: glashatai
 
 x-app: &app
   build: .
@@ -22,7 +29,7 @@ services:
 
   worker:
     <<: *app
-    command: watchfiles "arq app.worker.main.WorkerSettings" app
+    command: watchfiles "python -m app.worker.run" app
 
   admin:
     <<: *app
