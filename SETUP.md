@@ -49,7 +49,16 @@
 
 ---
 
-## 3. `SALUTE_SPEECH_AUTH_KEY` — распознавание речи (SaluteSpeech)
+## 3. Распознавание речи (STT)
+
+По умолчанию `STT_BACKEND=whisper` — локальный **faster-whisper**, **ключи не нужны**,
+ничего настраивать не надо. Модель зашита в образ (`WHISPER_MODEL`, по умолчанию
+`base`; на 1 ГБ RAM поставь `tiny`). Можешь сразу переходить к шагу 4.
+
+<details>
+<summary>Опционально: облако SaluteSpeech (если когда-нибудь подключишь пакет)</summary>
+
+Чтобы вместо Whisper использовать SaluteSpeech, задай `STT_BACKEND=salutespeech` и:
 
 1. Зайди на [developers.sber.ru](https://developers.sber.ru) и войди через **Sber ID**.
 2. Найди продукт **SaluteSpeech** (SmartSpeech) → **Создать проект / Получить API**.
@@ -80,6 +89,8 @@
 
 > ⚠️ Не путай с биллингом **GigaChat API** (там пакеты токенов). Пакеты
 > SaluteSpeech подключаются только со страницы SaluteSpeech.
+
+</details>
 
 ---
 

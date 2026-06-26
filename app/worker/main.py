@@ -26,6 +26,14 @@ async def startup(ctx: dict) -> None:
     setup_logging()
     await init_models()
     ctx["bot"] = Bot(token=settings.bot_token)
+    # Прогреваем локальную модель Whisper заранее, чтобы первое сообщение
+    # не ждало загрузку модели в память.
+    if settings.stt_backend.lower() == "whisper":
+        import asyncio
+
+        from app.services import whisper_stt
+
+        await asyncio.to_thread(whisper_stt.warmup)
     logger.info("Воркер Глашатая запущен 📯")
 
 
@@ -40,6 +48,7 @@ class WorkerSettings:
     redis_settings = redis_settings()
     on_startup = startup
     on_shutdown = shutdown
-    # На слабом VPS и бесплатной квоте Сбера ограничиваем параллелизм.
-    max_jobs = 4
-    job_timeout = 300  # сек на одну задачу (учитывает async-распознавание длинных аудио)
+    # Локальный Whisper — CPU-bound и прожорлив по памяти: на слабом VPS
+    # обрабатываем строго по одному. Облачный SaluteSpeech можно параллелить.
+    max_jobs = 1 if settings.stt_backend.lower() == "whisper" else 4
+    job_timeout = 300  # сек на одну задачу

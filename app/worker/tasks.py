@@ -19,7 +19,7 @@ from app.db.base import SessionLocal
 from app.db.models import EventKind, EventStatus
 from app.db.repo import record_event
 from app.services.gigachat import summarize
-from app.services.salute_speech import transcribe
+from app.services.stt import transcribe
 from app.store import add_chain_text, pop_chain
 from app.worker.audio import to_pcm16k
 

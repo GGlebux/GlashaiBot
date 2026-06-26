@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     gigachat_scope: str = "GIGACHAT_API_PERS"
     gigachat_model: str = "GigaChat"
 
+    # --- Выбор движка распознавания речи (STT) ---
+    # whisper       — локальный faster-whisper (бесплатно, без квот);
+    # salutespeech  — облако Сбера (нужен подключённый пакет).
+    stt_backend: str = "whisper"
+    # Модель Whisper: tiny | base | small | medium | large-v3.
+    # На слабом VPS (1-2 ГБ) реально tiny/base.
+    whisper_model: str = "base"
+    whisper_device: str = "cpu"
+    whisper_compute_type: str = "int8"
+    whisper_language: str = "ru"
+
     # --- TLS для сервисов Сбера (корневые сертификаты НУЦ Минцифры) ---
     # Путь к bundle с сертификатами Минцифры внутри контейнера.
     sber_ca_bundle: str = "/etc/ssl/certs/russian_trusted_ca.pem"

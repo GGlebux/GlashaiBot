@@ -1,9 +1,9 @@
-"""Диагностика доступности API Сбера (SaluteSpeech + GigaChat).
+"""Диагностика бэкендов «Глашатай»: STT (Whisper/SaluteSpeech) + GigaChat.
 
-Запуск (лучше в контейнере, где стоят сертификаты Минцифры):
+Запуск (лучше в контейнере, где стоят сертификаты Минцифры и модель Whisper):
     docker run --rm --env-file .env <image> python -m app.scripts.check_api
 
-Секреты не печатаются (только маска). Проверяем: TLS + OAuth + реальный вызов.
+Секреты не печатаются (только маска).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import os
 import sys
 
 from app.config import settings
-from app.services import gigachat, salute_speech
+from app.services import gigachat
 
 
 def _mask(value: str) -> str:
@@ -25,53 +25,38 @@ def _mask(value: str) -> str:
 
 
 def _looks_like_uuid(value: str) -> bool:
-    parts = value.split("-")
-    return len(value) == 36 and len(parts) == 5
-
-
-def _warn_uuid(name: str, auth_key: str) -> None:
-    if auth_key and _looks_like_uuid(auth_key):
-        print(
-            f"  ⚠️  {name}_AUTH_KEY похож на Client ID (UUID, 36 симв.), а нужен\n"
-            f"      «Ключ авторизации» (длинная Base64-строка). Либо задай пару\n"
-            f"      {name}_CLIENT_ID + {name}_CLIENT_SECRET — соберём ключ сами."
-        )
+    return len(value) == 36 and len(value.split("-")) == 5
 
 
 def _print_env() -> None:
     bundle = settings.sber_ca_bundle
     exists = os.path.exists(bundle) if bundle else False
     print("Окружение:")
-    print(f"  verify_ssl          : {settings.sber_verify_ssl}")
-    print(f"  ca_bundle           : {bundle} (существует: {exists})")
-    print(f"  SaluteSpeech key    : {_mask(settings.salute_basic_key)}  scope={settings.salute_speech_scope}")
+    print(f"  STT backend         : {settings.stt_backend}")
+    if settings.stt_backend.lower() == "whisper":
+        print(f"  Whisper model       : {settings.whisper_model} ({settings.whisper_compute_type}, {settings.whisper_device})")
+    else:
+        print(f"  SaluteSpeech key    : {_mask(settings.salute_basic_key)}  scope={settings.salute_speech_scope}")
+        if settings.salute_speech_auth_key and _looks_like_uuid(settings.salute_speech_auth_key):
+            print("  ⚠️  SALUTE_SPEECH_AUTH_KEY похож на Client ID, а нужен Authorization key.")
     print(f"  GigaChat key        : {_mask(settings.gigachat_basic_key)}  scope={settings.gigachat_scope}  model={settings.gigachat_model}")
-    if not exists:
-        print("  ⚠️  bundle сертификатов не найден — вне Docker TLS к Сберу, скорее всего, упадёт.")
-    _warn_uuid("SALUTE_SPEECH", settings.salute_speech_auth_key)
-    _warn_uuid("GIGACHAT", settings.gigachat_auth_key)
+    print(f"  ca_bundle           : {bundle} (существует: {exists})")
     print()
 
 
-async def check_salute() -> bool:
-    print("— SaluteSpeech (распознавание) —")
-    if not settings.salute_basic_key:
-        print("  ❌ Нет ключа: задай SALUTE_SPEECH_AUTH_KEY или пару CLIENT_ID+SECRET")
-        return False
+async def check_stt() -> bool:
+    backend = settings.stt_backend.lower()
+    print(f"— STT: {backend} —")
     try:
-        await salute_speech._token.get()  # noqa: SLF001
-        print("  ✅ OAuth-токен получен")
-    except Exception as exc:  # noqa: BLE001
-        print(f"  ❌ OAuth не прошёл: {type(exc).__name__}: {exc}")
-        return False
-    try:
-        # 1 секунда тишины (PCM s16le 16k mono) — проверяем сам эндпоинт распознавания.
-        silence = b"\x00\x00" * salute_speech.PCM_SAMPLE_RATE
-        await salute_speech._recognize_sync(silence, "ru-RU")  # noqa: SLF001
-        print("  ✅ speech:recognize ответил (на тишине текст пустой — это нормально)")
+        from app.services.stt import transcribe
+
+        # 1 секунда тишины (PCM s16le 16k mono) — проверяем, что движок отвечает.
+        silence = b"\x00\x00" * 16000
+        await transcribe(silence, 1)
+        print("  ✅ Движок распознавания ответил (на тишине текст пустой — это норма)")
         return True
     except Exception as exc:  # noqa: BLE001
-        print(f"  ❌ speech:recognize упал: {type(exc).__name__}: {exc}")
+        print(f"  ❌ STT упал: {type(exc).__name__}: {exc}")
         return False
 
 
@@ -96,16 +81,16 @@ async def check_gigachat() -> bool:
 
 
 async def main() -> None:
-    print("=== Проверка API Сбера для «Глашатай» ===\n")
+    print("=== Проверка бэкендов «Глашатай» ===\n")
     _print_env()
-    salute_ok = await check_salute()
+    stt_ok = await check_stt()
     print()
     giga_ok = await check_gigachat()
     print()
     print("Итог:")
-    print(f"  SaluteSpeech : {'OK ✅' if salute_ok else 'FAIL ❌'}")
-    print(f"  GigaChat     : {'OK ✅' if giga_ok else 'FAIL ❌'}")
-    sys.exit(0 if (salute_ok and giga_ok) else 1)
+    print(f"  STT ({settings.stt_backend}) : {'OK ✅' if stt_ok else 'FAIL ❌'}")
+    print(f"  GigaChat            : {'OK ✅' if giga_ok else 'FAIL ❌'}")
+    sys.exit(0 if (stt_ok and giga_ok) else 1)
 
 
 if __name__ == "__main__":

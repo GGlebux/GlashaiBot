@@ -27,6 +27,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Предзагрузка модели Whisper в образ — воркер не будет качать её при старте.
+# Размер можно сменить при сборке: --build-arg WHISPER_MODEL=tiny
+ARG WHISPER_MODEL=base
+RUN python -c "from faster_whisper import download_model; download_model('${WHISPER_MODEL}')"
+
 COPY app ./app
 
 # По умолчанию запускается бот; worker и admin переопределяют command в compose.
