@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import field_validator
+import base64
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,18 +17,24 @@ class Settings(BaseSettings):
 
     # --- Telegram ---
     bot_token: str
-    admin_ids: list[int] = []
+    # Список id админов строкой "111,222" — парсим в admin_id_list (см. ниже).
+    admin_ids: str = ""
 
     # --- Лимиты ---
     daily_limit: int = 20
     max_audio_seconds: int = 600
 
     # --- SaluteSpeech (STT) ---
+    # Либо готовый Authorization key (Base64), либо пара client_id + client_secret.
     salute_speech_auth_key: str = ""
+    salute_speech_client_id: str = ""
+    salute_speech_client_secret: str = ""
     salute_speech_scope: str = "SALUTE_SPEECH_PERS"
 
     # --- GigaChat (LLM) ---
     gigachat_auth_key: str = ""
+    gigachat_client_id: str = ""
+    gigachat_client_secret: str = ""
     gigachat_scope: str = "GIGACHAT_API_PERS"
     gigachat_model: str = "GigaChat"
 
@@ -56,13 +63,36 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     tz: str = "Europe/Moscow"
 
-    @field_validator("admin_ids", mode="before")
-    @classmethod
-    def _parse_admin_ids(cls, value: object) -> object:
-        """Разрешаем формат "111,222" из .env, а не только JSON-список."""
-        if isinstance(value, str):
-            return [int(x) for x in value.replace(" ", "").split(",") if x]
-        return value
+    @property
+    def admin_id_list(self) -> list[int]:
+        """Парсит "111,222" в список id админов."""
+        return [int(x) for x in self.admin_ids.replace(" ", "").split(",") if x.strip()]
+
+    @staticmethod
+    def _basic_key(auth_key: str, client_id: str, client_secret: str) -> str:
+        """Готовый Authorization key или Base64(client_id:client_secret)."""
+        if auth_key.strip():
+            return auth_key.strip()
+        if client_id and client_secret:
+            raw = f"{client_id.strip()}:{client_secret.strip()}".encode()
+            return base64.b64encode(raw).decode()
+        return ""
+
+    @property
+    def salute_basic_key(self) -> str:
+        return self._basic_key(
+            self.salute_speech_auth_key,
+            self.salute_speech_client_id,
+            self.salute_speech_client_secret,
+        )
+
+    @property
+    def gigachat_basic_key(self) -> str:
+        return self._basic_key(
+            self.gigachat_auth_key,
+            self.gigachat_client_id,
+            self.gigachat_client_secret,
+        )
 
     @property
     def database_url(self) -> str:
@@ -72,7 +102,7 @@ class Settings(BaseSettings):
         )
 
     def is_admin(self, user_id: int) -> bool:
-        return user_id in self.admin_ids
+        return user_id in self.admin_id_list
 
 
 settings = Settings()

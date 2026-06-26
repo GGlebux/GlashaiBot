@@ -18,9 +18,9 @@ RUN set -eux; \
     curl -fsSL https://gu-st.ru/content/Other/doc/russian_trusted_sub_ca.cer \
         -o /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt; \
     update-ca-certificates; \
-    cat /usr/local/share/ca-certificates/russian_trusted_root_ca.crt \
-        /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt \
-        > /etc/ssl/certs/russian_trusted_ca.pem
+    { cat /usr/local/share/ca-certificates/russian_trusted_root_ca.crt; echo; \
+      cat /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt; echo; } \
+      > /etc/ssl/certs/russian_trusted_ca.pem
 
 WORKDIR /app
 

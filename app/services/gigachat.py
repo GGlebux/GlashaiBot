@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 CHAT_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
-_token = SberToken(settings.gigachat_auth_key, settings.gigachat_scope)
+_token = SberToken(settings.gigachat_basic_key, settings.gigachat_scope)
 
 SYSTEM_PROMPT = (
     "Ты — «Глашатай», ассистент, который делает краткое и точное содержание "

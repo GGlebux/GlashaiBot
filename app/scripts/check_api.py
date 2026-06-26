@@ -24,23 +24,39 @@ def _mask(value: str) -> str:
     return f"{value[:4]}…{value[-4:]} (len={len(value)})"
 
 
+def _looks_like_uuid(value: str) -> bool:
+    parts = value.split("-")
+    return len(value) == 36 and len(parts) == 5
+
+
+def _warn_uuid(name: str, auth_key: str) -> None:
+    if auth_key and _looks_like_uuid(auth_key):
+        print(
+            f"  ⚠️  {name}_AUTH_KEY похож на Client ID (UUID, 36 симв.), а нужен\n"
+            f"      «Ключ авторизации» (длинная Base64-строка). Либо задай пару\n"
+            f"      {name}_CLIENT_ID + {name}_CLIENT_SECRET — соберём ключ сами."
+        )
+
+
 def _print_env() -> None:
     bundle = settings.sber_ca_bundle
     exists = os.path.exists(bundle) if bundle else False
     print("Окружение:")
     print(f"  verify_ssl          : {settings.sber_verify_ssl}")
     print(f"  ca_bundle           : {bundle} (существует: {exists})")
-    print(f"  SaluteSpeech key    : {_mask(settings.salute_speech_auth_key)}  scope={settings.salute_speech_scope}")
-    print(f"  GigaChat key        : {_mask(settings.gigachat_auth_key)}  scope={settings.gigachat_scope}  model={settings.gigachat_model}")
+    print(f"  SaluteSpeech key    : {_mask(settings.salute_basic_key)}  scope={settings.salute_speech_scope}")
+    print(f"  GigaChat key        : {_mask(settings.gigachat_basic_key)}  scope={settings.gigachat_scope}  model={settings.gigachat_model}")
     if not exists:
         print("  ⚠️  bundle сертификатов не найден — вне Docker TLS к Сберу, скорее всего, упадёт.")
+    _warn_uuid("SALUTE_SPEECH", settings.salute_speech_auth_key)
+    _warn_uuid("GIGACHAT", settings.gigachat_auth_key)
     print()
 
 
 async def check_salute() -> bool:
     print("— SaluteSpeech (распознавание) —")
-    if not settings.salute_speech_auth_key:
-        print("  ❌ SALUTE_SPEECH_AUTH_KEY не задан")
+    if not settings.salute_basic_key:
+        print("  ❌ Нет ключа: задай SALUTE_SPEECH_AUTH_KEY или пару CLIENT_ID+SECRET")
         return False
     try:
         await salute_speech._token.get()  # noqa: SLF001
@@ -61,8 +77,8 @@ async def check_salute() -> bool:
 
 async def check_gigachat() -> bool:
     print("— GigaChat (краткое содержание) —")
-    if not settings.gigachat_auth_key:
-        print("  ❌ GIGACHAT_AUTH_KEY не задан")
+    if not settings.gigachat_basic_key:
+        print("  ❌ Нет ключа: задай GIGACHAT_AUTH_KEY или пару CLIENT_ID+SECRET")
         return False
     try:
         await gigachat._token.get()  # noqa: SLF001

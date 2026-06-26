@@ -54,12 +54,18 @@
 1. Зайди на [developers.sber.ru](https://developers.sber.ru) и войди через **Sber ID**.
 2. Найди продукт **SaluteSpeech** (SmartSpeech) → **Создать проект / Получить API**.
 3. Выбери тариф для **физлица** (есть бесплатный пакет минут в месяц), прими условия.
-4. В проекте найди раздел с авторизацией и скопируй **Authorization key**
-   (длинная строка Base64 — это уже готовый ключ `client_id:client_secret`).
-5. Вставь его в `SALUTE_SPEECH_AUTH_KEY`. `SALUTE_SPEECH_SCOPE` оставь `SALUTE_SPEECH_PERS`.
+4. В проекте найди раздел с авторизацией. Там есть **три** значения:
+   `Client ID`, `Client Secret` и **`Ключ авторизации` (Authorization key)**.
+5. Заполни в `.env` **один из вариантов**:
+   - **Вариант 1 (проще):** скопируй длинный **`Ключ авторизации`** (Base64,
+     ~80–100 символов) в `SALUTE_SPEECH_AUTH_KEY`.
+   - **Вариант 2:** впиши `Client ID` → `SALUTE_SPEECH_CLIENT_ID` и
+     `Client Secret` → `SALUTE_SPEECH_CLIENT_SECRET` (ключ соберётся сам).
+6. `SALUTE_SPEECH_SCOPE` оставь `SALUTE_SPEECH_PERS`.
 
-> Если в кабинете дают отдельно Client ID и Client Secret — закодируй
-> `client_id:client_secret` в Base64 и используй результат как Authorization key.
+> ⚠️ **Частая ошибка:** вставить в `*_AUTH_KEY` сам **Client ID** (это UUID на
+> 36 символов вида `019f…-…-66c9`). Сервер ответит **401**. В `*_AUTH_KEY`
+> нужен либо длинный Base64-ключ, либо используй вариант 2 (ID + Secret).
 
 ---
 
@@ -67,10 +73,28 @@
 
 1. Там же на [developers.sber.ru](https://developers.sber.ru) открой **GigaChat API**.
 2. **Создать проект** для физлица, прими условия (бесплатный тариф для физлиц).
-3. Скопируй **Authorization key** проекта → в `GIGACHAT_AUTH_KEY`.
+3. Заполни **один из вариантов** (как у SaluteSpeech):
+   - **`Ключ авторизации`** (длинный Base64) → `GIGACHAT_AUTH_KEY`, **или**
+   - `Client ID` → `GIGACHAT_CLIENT_ID` и `Client Secret` → `GIGACHAT_CLIENT_SECRET`.
 4. `GIGACHAT_SCOPE` оставь `GIGACHAT_API_PERS`, модель `GIGACHAT_MODEL=GigaChat`.
 
-> SaluteSpeech и GigaChat — это **разные** ключи, даже если кабинет один.
+> SaluteSpeech и GigaChat — это **разные** проекты и **разные** ключи, даже если
+> кабинет один. Та же оговорка про Client ID vs Authorization key, что и выше.
+
+---
+
+## 🔎 Проверка ключей
+
+После заполнения `.env` можно проверить связь с API (внутри Docker, где стоят
+сертификаты Минцифры):
+
+```bash
+docker build -t glashatai:test .
+docker run --rm --env-file .env glashatai:test python -m app.scripts.check_api
+```
+
+Скрипт покажет, проходят ли OAuth и реальные вызовы SaluteSpeech и GigaChat,
+и подскажет, если в ключ случайно попал Client ID.
 
 ---
 

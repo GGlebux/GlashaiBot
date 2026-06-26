@@ -28,7 +28,7 @@ PCM_ENCODING = "PCM_S16LE"
 # Порог, после которого уходим в асинхронное распознавание (сек).
 SYNC_LIMIT_SECONDS = 55
 
-_token = SberToken(settings.salute_speech_auth_key, settings.salute_speech_scope)
+_token = SberToken(settings.salute_basic_key, settings.salute_speech_scope)
 
 
 class SaluteSpeechError(Exception):
