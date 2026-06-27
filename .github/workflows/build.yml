@@ -16,6 +16,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    # Секреты DOCKERHUB_* лежат в этом окружении (а не в Repository secrets).
+    environment: "DockerHub env"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
