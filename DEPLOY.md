@@ -71,13 +71,33 @@ git push        →  Actions собирает образ  →  Docker Hub  →  
 docker run --rm --env-file .env youruser/glashatai:latest python -m app.scripts.check_api
 ```
 
-## Админка (опционально)
-Веб-дашборд работает, но вход через Telegram требует **домена** (для Login Widget):
-- направь домен на сервер, открой порт `ADMIN_PORT` (8080) через reverse-proxy
-  (nginx/Caddy) с HTTPS, укажи `ADMIN_BASE_URL=https://твой-домен`,
-- в @BotFather → `/setdomain` пропиши этот домен.
+## Админка с HTTPS (вход через Telegram)
 
-Без домена бот полностью работает — недоступен только веб-вход в админку.
+Вход в админку — через Telegram Login Widget, ему нужен **домен + HTTPS** (IP и
+`http` не подходят). В стек уже встроен **Caddy** — он сам выпустит сертификат
+Let's Encrypt. Нужен только бесплатный домен.
+
+1. **Домен (бесплатно, быстро):** на [duckdns.org](https://www.duckdns.org) войди
+   через Google, создай поддомен (напр. `glashatai`), в поле IP впиши адрес VPS →
+   получишь `glashatai.duckdns.org`.
+2. **Открой порты на сервере:** 80 и 443 (для Let's Encrypt и HTTPS).
+   ```bash
+   ufw allow 80 && ufw allow 443
+   ```
+3. **В `.env`:**
+   ```
+   DOMAIN=glashatai.duckdns.org
+   ADMIN_BASE_URL=https://glashatai.duckdns.org
+   ```
+4. **В @BotFather:** `/setdomain` → выбери бота → впиши `glashatai.duckdns.org`.
+5. `docker compose up -d` — Caddy поднимет HTTPS автоматически (первый запрос к
+   домену может занять несколько секунд на выпуск сертификата).
+
+Открой `https://glashatai.duckdns.org` → войди через Telegram (доступ только у
+`ADMIN_IDS`).
+
+> Без домена бот полностью работает — недоступен только веб-вход в админку.
+> Caddy на работу бота не влияет: даже если сертификат не выпустится, бот живёт.
 
 ## Памятка по ресурсам (2 ГБ)
 - `WHISPER_MODEL=small` — комфортно. `medium` на 2 ГБ не влезет.

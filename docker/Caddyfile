@@ -1,0 +1,5 @@
+# Caddy: авто-HTTPS (Let's Encrypt) + проксирование на админку.
+# Домен берётся из переменной окружения DOMAIN (см. .env).
+{$DOMAIN} {
+	reverse_proxy admin:8080
+}

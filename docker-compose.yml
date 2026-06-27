@@ -30,13 +30,33 @@ services:
   admin:
     <<: *app
     command: uvicorn app.admin.main:app --host 0.0.0.0 --port ${ADMIN_PORT:-8080}
-    ports:
-      - "${ADMIN_PORT:-8080}:${ADMIN_PORT:-8080}"
+    # Наружу не публикуем — доступ только через Caddy (HTTPS). Внутри сети
+    # сервисы видят admin по имени (admin:8080).
+    expose:
+      - "8080"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${ADMIN_PORT:-8080}/health').status==200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 5
+
+  # Reverse-proxy с авто-HTTPS (Let's Encrypt). Требует домен в DOMAIN и
+  # открытые порты 80/443 на сервере. Без домена админка недоступна, но бот
+  # работает — Caddy на бота никак не влияет.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - admin
 
   postgres:
     image: postgres:16-alpine
@@ -74,3 +94,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
