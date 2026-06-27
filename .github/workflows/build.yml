@@ -23,6 +23,19 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Проверка секретов Docker Hub
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DH_USER" ] || [ -z "$DH_TOKEN" ]; then
+            echo "::error::Секреты DOCKERHUB_USERNAME/DOCKERHUB_TOKEN пусты или не заданы."
+            echo "Добавь их в: Settings -> Secrets and variables -> Actions ->"
+            echo "вкладка Secrets -> Repository secrets (НЕ Variables, НЕ Environment, НЕ Dependabot)."
+            exit 1
+          fi
+          echo "OK: оба секрета на месте (DOCKERHUB_USERNAME и DOCKERHUB_TOKEN)."
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
