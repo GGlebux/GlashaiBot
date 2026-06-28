@@ -46,6 +46,9 @@ docker/certs/*.cer
 # --- Локальные заметки (не коммитим) ---
 BRANDING_PROMPTS.md
 
+# Вложенный локальный клон проекта (не часть репозитория)
+GlashaiBot/
+
 # --- OS ---
 .DS_Store
 Thumbs.db

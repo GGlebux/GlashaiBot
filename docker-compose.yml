@@ -83,13 +83,16 @@ services:
   watchtower:
     image: containrrr/watchtower
     restart: unless-stopped
+    environment:
+      # Свежий Docker-демон отвергает старый клиент watchtower (API 1.25):
+      # форсируем поддерживаемую версию API.
+      DOCKER_API_VERSION: "1.44"
+      # Для приватного репозитория Docker Hub раскомментируй:
+      # REPO_USER: ${DOCKERHUB_USERNAME}
+      # REPO_PASS: ${DOCKERHUB_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --cleanup --interval 300
-    # Для приватного репозитория Docker Hub раскомментируй и заполни:
-    # environment:
-    #   REPO_USER: ${DOCKERHUB_USERNAME}
-    #   REPO_PASS: ${DOCKERHUB_TOKEN}
 
 volumes:
   postgres_data:

@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     # salutespeech  — облако Сбера (нужен подключённый пакет).
     stt_backend: str = "whisper"
     # Модель Whisper: tiny | base | small | medium | large-v3.
-    # 1 ГБ → tiny/base; 2 ГБ → small (баланс качества и памяти).
-    whisper_model: str = "small"
+    # base — практичный дефолт для VPS 1-2 ГБ; small/medium требуют 2+ ГБ
+    # реальной памяти (на 1.6 ГБ small слишком медленный даже со swap).
+    whisper_model: str = "base"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
     whisper_language: str = "ru"

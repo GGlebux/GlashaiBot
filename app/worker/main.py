@@ -51,4 +51,4 @@ class WorkerSettings:
     # Локальный Whisper — CPU-bound и прожорлив по памяти: на слабом VPS
     # обрабатываем строго по одному. Облачный SaluteSpeech можно параллелить.
     max_jobs = 1 if settings.stt_backend.lower() == "whisper" else 4
-    job_timeout = 300  # сек на одну задачу
+    job_timeout = 600  # сек на задачу (запас для длинных аудио на слабом CPU)
