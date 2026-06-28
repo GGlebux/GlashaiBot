@@ -5,7 +5,7 @@ from __future__ import annotations
 from aiogram import Bot, F, Router
 from aiogram.types import Message
 
-from app.bot import reactions, texts
+from app.bot import progress, reactions, texts
 from app.bot.reactions import Stage
 from app.config import settings
 from app.db.base import SessionLocal
@@ -45,10 +45,14 @@ async def on_media(message: Message, bot: Bot, user) -> None:
     pool = await get_arq_pool()
 
     if await is_chain_active(uid):
+        # Прогресс цепочки ведёт общее статус-сообщение (создаётся в /begin).
         await pool.enqueue_job(
             "process_chain_item", message.chat.id, message.message_id, uid, file_id, duration
         )
     else:
+        # Отдельное сообщение с прогресс-баром, которое потом станет выжимкой.
+        percent, label = progress.SINGLE_STAGES["received"]
+        prog_msg = await message.answer(progress.render(percent, label), parse_mode="HTML")
         await pool.enqueue_job(
             "process_single",
             message.chat.id,
@@ -57,6 +61,7 @@ async def on_media(message: Message, bot: Bot, user) -> None:
             file_id,
             duration,
             kind.value,
+            prog_msg.message_id,
         )
 
 

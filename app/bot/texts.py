@@ -62,17 +62,36 @@ ERROR_GENERIC = (
 NOT_FOR_GROUPS = "📯 Я работаю только в личных сообщениях. Напиши мне в личку!"
 
 
-def format_single_result(transcript: str, summary: str) -> str:
-    parts = ["📝 <b>Расшифровка</b>", _escape(transcript)]
-    if summary:
-        parts += ["", "🧠 <b>Кратко</b>", _escape(summary)]
-    return "\n".join(parts)
+def format_single_summary(points: list[str], tone: str) -> str:
+    """Выжимка (тезисы с эмодзи) + мета-строка про тон/стиль."""
+    lines = ["🧠 <b>Кратко</b>"]
+    lines += [_escape(p) for p in points] if points else ["—"]
+    if tone:
+        lines += ["", f"🗣 <b>Стиль:</b> {_escape(tone)}"]
+    return "\n".join(lines)
 
 
-def format_chain_result(summary: str, items: int) -> str:
+def format_transcript(transcript: str) -> str:
+    return "📝 <b>Полный текст</b>\n" + _escape(transcript)
+
+
+def format_chain_summary(points: list[str], tone: str, items: int) -> str:
+    lines = [f"📯 <b>Итог цепочки</b> ({items} сообщ.)"]
+    lines += [_escape(p) for p in points] if points else ["—"]
+    if tone:
+        lines += ["", f"🗣 <b>Стиль:</b> {_escape(tone)}"]
+    return "\n".join(lines)
+
+
+def chain_progress(count: int) -> str:
+    if count == 0:
+        return (
+            "🔗 <b>Цепочка запущена</b> · принято: <b>0</b>\n"
+            "Кидай голосовые и кружки, потом заверши командой /end"
+        )
     return (
-        f"📯 <b>Краткое содержание цепочки</b> ({items} сообщ.)\n\n"
-        f"{_escape(summary)}"
+        f"🔗 <b>Цепочка</b> · принято: <b>{count}</b>\n"
+        "Кидай ещё или заверши командой /end"
     )
 
 

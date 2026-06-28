@@ -6,10 +6,15 @@ from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.bot import reactions, texts
-from app.bot.reactions import Stage
+from app.bot import texts
 from app.queue import get_arq_pool
-from app.store import is_chain_active, pop_chain, start_chain
+from app.store import (
+    get_chain_progress,
+    is_chain_active,
+    pop_chain,
+    set_chain_progress,
+    start_chain,
+)
 
 router = Router(name="chain")
 
@@ -21,27 +26,32 @@ async def cmd_begin(message: Message) -> None:
         await message.answer(texts.CHAIN_ALREADY, parse_mode="HTML")
         return
     await start_chain(uid)
-    await message.answer(texts.CHAIN_STARTED, parse_mode="HTML")
+    # Единое статус-сообщение цепочки — его воркер будет «подбрасывать» вниз.
+    prog = await message.answer(texts.chain_progress(0), parse_mode="HTML")
+    await set_chain_progress(uid, message.chat.id, prog.message_id)
 
 
 @router.message(Command("end"))
-async def cmd_end(message: Message, bot: Bot) -> None:
+async def cmd_end(message: Message) -> None:
     uid = message.from_user.id
     if not await is_chain_active(uid):
         await message.answer(texts.CHAIN_NOT_ACTIVE)
         return
-    # Показываем прогресс реакцией прямо на команде /end.
-    await reactions.set_stage(bot, message.chat.id, message.message_id, Stage.accepted)
-    await message.answer(texts.CHAIN_FINALIZING)
     pool = await get_arq_pool()
     await pool.enqueue_job("process_chain_finalize", message.chat.id, message.message_id, uid)
 
 
 @router.message(Command("cancel"))
-async def cmd_cancel(message: Message) -> None:
+async def cmd_cancel(message: Message, bot: Bot) -> None:
     uid = message.from_user.id
-    if await is_chain_active(uid):
-        await pop_chain(uid)  # просто выбрасываем накопленное
-        await message.answer(texts.CHAIN_CANCELLED)
-    else:
+    if not await is_chain_active(uid):
         await message.answer(texts.CHAIN_NOT_ACTIVE)
+        return
+    prog = await get_chain_progress(uid)
+    await pop_chain(uid)  # выбрасываем накопленное
+    if prog:
+        try:
+            await bot.delete_message(prog[0], prog[1])
+        except Exception:  # noqa: BLE001
+            pass
+    await message.answer(texts.CHAIN_CANCELLED)

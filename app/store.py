@@ -62,10 +62,14 @@ def _chain_dur_key(uid: int) -> str:
     return f"chain:dur:{uid}"
 
 
+def _chain_prog_key(uid: int) -> str:
+    return f"chain:prog:{uid}"
+
+
 async def start_chain(uid: int) -> None:
     redis = get_redis()
     async with redis.pipeline(transaction=True) as pipe:
-        pipe.delete(_chain_texts_key(uid), _chain_dur_key(uid))
+        pipe.delete(_chain_texts_key(uid), _chain_dur_key(uid), _chain_prog_key(uid))
         pipe.set(_chain_active_key(uid), "1", ex=CHAIN_TTL)
         await pipe.execute()
 
@@ -75,8 +79,8 @@ async def is_chain_active(uid: int) -> bool:
     return bool(await redis.exists(_chain_active_key(uid)))
 
 
-async def add_chain_text(uid: int, text: str, duration: int) -> None:
-    """Добавляет распознанный фрагмент в текущую сессию цепочки."""
+async def add_chain_text(uid: int, text: str, duration: int) -> int:
+    """Добавляет распознанный фрагмент в сессию цепочки. Возвращает их число."""
     redis = get_redis()
     async with redis.pipeline(transaction=True) as pipe:
         pipe.rpush(_chain_texts_key(uid), text)
@@ -85,7 +89,28 @@ async def add_chain_text(uid: int, text: str, duration: int) -> None:
         pipe.expire(_chain_active_key(uid), CHAIN_TTL)
         pipe.expire(_chain_texts_key(uid), CHAIN_TTL)
         pipe.expire(_chain_dur_key(uid), CHAIN_TTL)
-        await pipe.execute()
+        pipe.expire(_chain_prog_key(uid), CHAIN_TTL)
+        results = await pipe.execute()
+    return int(results[0])  # длина списка после rpush
+
+
+async def chain_count(uid: int) -> int:
+    redis = get_redis()
+    return int(await redis.llen(_chain_texts_key(uid)))
+
+
+async def set_chain_progress(uid: int, chat_id: int, msg_id: int) -> None:
+    redis = get_redis()
+    await redis.set(_chain_prog_key(uid), f"{chat_id}:{msg_id}", ex=CHAIN_TTL)
+
+
+async def get_chain_progress(uid: int) -> tuple[int, int] | None:
+    redis = get_redis()
+    value = await redis.get(_chain_prog_key(uid))
+    if not value:
+        return None
+    chat_id, msg_id = value.split(":")
+    return int(chat_id), int(msg_id)
 
 
 async def pop_chain(uid: int) -> tuple[list[str], int]:
@@ -94,6 +119,9 @@ async def pop_chain(uid: int) -> tuple[list[str], int]:
     texts = await redis.lrange(_chain_texts_key(uid), 0, -1)
     duration = int(await redis.get(_chain_dur_key(uid)) or 0)
     await redis.delete(
-        _chain_active_key(uid), _chain_texts_key(uid), _chain_dur_key(uid)
+        _chain_active_key(uid),
+        _chain_texts_key(uid),
+        _chain_dur_key(uid),
+        _chain_prog_key(uid),
     )
     return texts, duration
